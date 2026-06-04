@@ -8,13 +8,15 @@ DISCORD_TOKEN       = "MTUxMjAwNzk4ODg1NDkxNTExMw.GbF-MD.2aozQoUuzNS-bw5sakYQvBS
 PTERODACTYL_URL     = "https://stellar.jagoanhosting.id"
 PTERODACTYL_API_KEY = "ptlc_NV9KjOJmOIIms4ZmMMTDoU38HIAPW9z47xZ5KD7rQSn"
 SERVER_ID           = "0da161b4"
-ADMIN_CHANNEL_ID    = 1512011864161124442
+ADMIN_CHANNEL_ID    = 1512053806442086481  # Channel Moderator (Approve/Reject)
+PLAYER_CHANNEL_ID   = 1512011864161124442  # Channel Player (Request Whitelist)
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+synced = False  # Flag agar sync() hanya jalan sekali
 
 
 async def send_mc_command(command: str) -> bool:
@@ -54,6 +56,14 @@ class WhitelistView(discord.ui.View):
             await interaction.message.edit(embed=embed, view=None)
             await interaction.response.send_message("✅ Whitelist Berhasil!", ephemeral=True)
 
+            # Kirim ke channel player
+            player_channel = bot.get_channel(PLAYER_CHANNEL_ID)
+            if player_channel:
+                await player_channel.send(
+                    f"✅ {self.requester.mention} Whitelist request untuk **{self.mc_username}** telah diapprove! Selamat bergabung! 🎮"
+                )
+
+            # Kirim DM ke player
             try:
                 await self.requester.send(
                     f"✅ Whitelist request untuk **{self.mc_username}** telah diapprove!\n"
@@ -82,6 +92,14 @@ class WhitelistView(discord.ui.View):
         await interaction.message.edit(embed=embed, view=None)
         await interaction.response.send_message("✅ Request direject!", ephemeral=True)
 
+        # Kirim ke channel player
+        player_channel = bot.get_channel(PLAYER_CHANNEL_ID)
+        if player_channel:
+            await player_channel.send(
+                f"❌ {self.requester.mention} Whitelist request untuk **{self.mc_username}** telah direject oleh admin."
+            )
+
+        # Kirim DM ke player
         try:
             await self.requester.send(
                 f"❌ Whitelist request untuk **{self.mc_username}** telah direject oleh admin."
@@ -89,16 +107,21 @@ class WhitelistView(discord.ui.View):
         except:
             pass
 
-        self.stop()
+        self.stop() 
 
-
-# ==============================
 # SLASH COMMANDS
-# ==============================
 
 @bot.tree.command(name="whitelist", description="Whitelist Request ke server Minecraft")
 @app_commands.describe(username="Gamertag")
 async def whitelist_request(interaction: discord.Interaction, username: str):
+    # Hanya boleh di channel player
+    if interaction.channel_id != PLAYER_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
+            ephemeral=True
+        )
+        return
+
     admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
     if not admin_channel:
         await interaction.response.send_message("❌ Admin channel tidak ditemukan!", ephemeral=True)
@@ -126,6 +149,14 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
 @bot.tree.command(name="unwhitelist", description="Hapus player dari whitelist (Admin Command)")
 @app_commands.describe(username="Gamertag")
 async def unwhitelist(interaction: discord.Interaction, username: str):
+    # Hanya boleh di channel admin
+    if interaction.channel_id != ADMIN_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
+            ephemeral=True
+        )
+        return
+
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Terdeteksi, Kamu bukan admin!", ephemeral=True)
         return
@@ -140,6 +171,14 @@ async def unwhitelist(interaction: discord.Interaction, username: str):
 @bot.tree.command(name="ban", description="Ban player dari server (Admin Command)")
 @app_commands.describe(username="Gamertag", reason="Reason")
 async def ban_player(interaction: discord.Interaction, username: str, reason: str = "Tidak ada alasan"):
+    # Hanya boleh di channel admin
+    if interaction.channel_id != ADMIN_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
+            ephemeral=True
+        )
+        return
+
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Terdeteksi, Kamu bukan admin!", ephemeral=True)
         return
@@ -158,6 +197,14 @@ async def ban_player(interaction: discord.Interaction, username: str, reason: st
 @bot.tree.command(name="unban", description="Unban player dari server (Admin Command)")
 @app_commands.describe(username="Gamertag")
 async def unban_player(interaction: discord.Interaction, username: str):
+    # Hanya boleh di channel admin
+    if interaction.channel_id != ADMIN_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
+            ephemeral=True
+        )
+        return
+
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Terdeteksi, Kamu bukan admin!", ephemeral=True)
         return
@@ -172,14 +219,18 @@ async def unban_player(interaction: discord.Interaction, username: str):
 @bot.tree.command(name="soggycat", description="soggy cat")
 async def soggycat(interaction: discord.Interaction):
     embed = discord.Embed()
-    embed.set_image(url="https://cdn.discordapp.com/attachments/1507566209833373800/1512033693869277194/soggycat.webp?ex=6a229e9c&is=6a214d1c&hm=8417871a6676167b22388cf99cf65fe75c3990034ebd4c8296f373d52e3b4c1f&")
+    embed.set_image(url="https://soggy.cat/static/ssoggycat/main/images/soggycat.webp")
     await interaction.response.send_message(embed=embed)
+
 
 # BOT EVENTS
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
+    global synced
+    if not synced:
+        await bot.tree.sync()
+        synced = True
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Pirates of the Caribbean"))
     print(f"✅ Bot {bot.user} is Now Online!")
 
