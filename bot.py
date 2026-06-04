@@ -16,7 +16,8 @@ intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
-synced = False  # Flag agar sync() hanya jalan sekali
+synced = False
+pending_requests = set()  # Menyimpan user ID yang sudah punya request pending
 
 
 async def send_mc_command(command: str) -> bool:
@@ -36,6 +37,10 @@ class WhitelistView(discord.ui.View):
         super().__init__(timeout=86400)  # 24 jam timeout
         self.requester = requester
         self.mc_username = mc_username
+
+    async def on_timeout(self):
+        # Hapus dari pending saat timeout (24 jam)
+        pending_requests.discard(self.requester.id)
 
     @discord.ui.button(label="✅ Approve", style=discord.ButtonStyle.success)
     async def approve(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -74,6 +79,7 @@ class WhitelistView(discord.ui.View):
         else:
             await interaction.response.send_message("❌ Gagal mengirim command ke server!", ephemeral=True)
 
+        pending_requests.discard(self.requester.id)  # Hapus dari pending setelah selesai
         self.stop()
 
     @discord.ui.button(label="❌ Reject", style=discord.ButtonStyle.danger)
@@ -107,9 +113,13 @@ class WhitelistView(discord.ui.View):
         except:
             pass
 
-        self.stop() 
+        pending_requests.discard(self.requester.id)  # Hapus dari pending setelah selesai
+        self.stop()
 
+
+# ==============================
 # SLASH COMMANDS
+# ==============================
 
 @bot.tree.command(name="whitelist", description="Whitelist Request ke server Minecraft")
 @app_commands.describe(username="Gamertag")
@@ -117,7 +127,15 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
     # Hanya boleh di channel player
     if interaction.channel_id != PLAYER_CHANNEL_ID:
         await interaction.response.send_message(
-            f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
+            f"❌ Command ini hanya bisa digunakan di <#{PLAYER_CHANNEL_ID}>!",
+            ephemeral=True
+        )
+        return
+
+    # Cek apakah user sudah punya request pending
+    if interaction.user.id in pending_requests:
+        await interaction.response.send_message(
+            "❌ Kamu sudah punya request whitelist yang sedang menunggu approval!\nTunggu sampai di-approve atau direject dulu.",
             ephemeral=True
         )
         return
@@ -137,6 +155,7 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
     embed.set_thumbnail(url=f"https://mc-heads.net/avatar/{username}")
     embed.set_footer(text=f"User ID: {interaction.user.id}")
 
+    pending_requests.add(interaction.user.id)  # Tandai user sebagai pending
     view = WhitelistView(interaction.user, username)
     await admin_channel.send(embed=embed, view=view)
 
@@ -149,7 +168,6 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
 @bot.tree.command(name="unwhitelist", description="Hapus player dari whitelist (Admin Command)")
 @app_commands.describe(username="Gamertag")
 async def unwhitelist(interaction: discord.Interaction, username: str):
-    # Hanya boleh di channel admin
     if interaction.channel_id != ADMIN_CHANNEL_ID:
         await interaction.response.send_message(
             f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
@@ -171,7 +189,6 @@ async def unwhitelist(interaction: discord.Interaction, username: str):
 @bot.tree.command(name="ban", description="Ban player dari server (Admin Command)")
 @app_commands.describe(username="Gamertag", reason="Reason")
 async def ban_player(interaction: discord.Interaction, username: str, reason: str = "Tidak ada alasan"):
-    # Hanya boleh di channel admin
     if interaction.channel_id != ADMIN_CHANNEL_ID:
         await interaction.response.send_message(
             f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
@@ -197,7 +214,6 @@ async def ban_player(interaction: discord.Interaction, username: str, reason: st
 @bot.tree.command(name="unban", description="Unban player dari server (Admin Command)")
 @app_commands.describe(username="Gamertag")
 async def unban_player(interaction: discord.Interaction, username: str):
-    # Hanya boleh di channel admin
     if interaction.channel_id != ADMIN_CHANNEL_ID:
         await interaction.response.send_message(
             f"❌ Command ini hanya bisa digunakan di <#{ADMIN_CHANNEL_ID}>!",
