@@ -171,7 +171,8 @@ async def unban_player(interaction: discord.Interaction, username: str):
 
 @bot.tree.command(name="soggycat", description="soggy cat")
 async def soggycat(interaction: discord.Interaction):
-    embed.set_image(url="https://soggy.cat/static/ssoggycat/main/images/soggycat.webp")
+    embed = discord.Embed()
+    embed.set_image(url="https://cdn.discordapp.com/attachments/1507566209833373800/1512033693869277194/soggycat.webp?ex=6a229e9c&is=6a214d1c&hm=8417871a6676167b22388cf99cf65fe75c3990034ebd4c8296f373d52e3b4c1f&")
     await interaction.response.send_message(embed=embed)
 
 # BOT EVENTS
