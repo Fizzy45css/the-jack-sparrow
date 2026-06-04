@@ -2,6 +2,20 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import aiohttp
+import json
+import os
+
+PENDING_FILE = "pending.json"
+
+def load_pending() -> set:
+    if os.path.exists(PENDING_FILE):
+        with open(PENDING_FILE, "r") as f:
+            return set(json.load(f))
+    return set()
+
+def save_pending():
+    with open(PENDING_FILE, "w") as f:
+        json.dump(list(pending_requests), f)
 
 # KONFIGURASI
 DISCORD_TOKEN       = "MTUxMjAwNzk4ODg1NDkxNTExMw.GbF-MD.2aozQoUuzNS-bw5sakYQvBSyXUggbFjlOkq400"
@@ -17,7 +31,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 synced = False
-pending_requests = set()  # Menyimpan user ID yang sudah punya request pending
+pending_requests = load_pending()  # Load dari file supaya persistent saat bot restart
 
 
 async def send_mc_command(command: str) -> bool:
@@ -39,8 +53,8 @@ class WhitelistView(discord.ui.View):
         self.mc_username = mc_username
 
     async def on_timeout(self):
-        # Hapus dari pending saat timeout (24 jam)
         pending_requests.discard(self.requester.id)
+        save_pending()
 
     @discord.ui.button(label="✅ Approve", style=discord.ButtonStyle.success)
     async def approve(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -80,6 +94,7 @@ class WhitelistView(discord.ui.View):
             await interaction.response.send_message("❌ Gagal mengirim command ke server!", ephemeral=True)
 
         pending_requests.discard(self.requester.id)  # Hapus dari pending setelah selesai
+        save_pending()
         self.stop()
 
     @discord.ui.button(label="❌ Reject", style=discord.ButtonStyle.danger)
@@ -114,6 +129,7 @@ class WhitelistView(discord.ui.View):
             pass
 
         pending_requests.discard(self.requester.id)  # Hapus dari pending setelah selesai
+        save_pending()
         self.stop()
 
 
@@ -162,6 +178,7 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
     embed.set_footer(text=f"User ID: {interaction.user.id}")
 
     pending_requests.add(interaction.user.id)  # Tandai user sebagai pending
+    save_pending()
     view = WhitelistView(interaction.user, username)
     await admin_channel.send(embed=embed, view=view)
 
