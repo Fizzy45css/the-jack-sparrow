@@ -124,9 +124,15 @@ class WhitelistView(discord.ui.View):
 @bot.tree.command(name="whitelist", description="Whitelist Request ke server Minecraft")
 @app_commands.describe(username="Gamertag")
 async def whitelist_request(interaction: discord.Interaction, username: str):
+    # Klaim interaksi duluan — instance kedua akan gagal di sini dan berhenti
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except discord.errors.InteractionResponded:
+        return  # Instance lain sudah menangani interaksi ini
+
     # Hanya boleh di channel player
     if interaction.channel_id != PLAYER_CHANNEL_ID:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"❌ Command ini hanya bisa digunakan di <#{PLAYER_CHANNEL_ID}>!",
             ephemeral=True
         )
@@ -134,7 +140,7 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
 
     # Cek apakah user sudah punya request pending
     if interaction.user.id in pending_requests:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Kamu sudah punya request whitelist yang sedang menunggu approval!\nTunggu sampai di-approve atau direject dulu.",
             ephemeral=True
         )
@@ -142,7 +148,7 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
 
     admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
     if not admin_channel:
-        await interaction.response.send_message("❌ Admin channel tidak ditemukan!", ephemeral=True)
+        await interaction.followup.send("❌ Admin channel tidak ditemukan!", ephemeral=True)
         return
 
     embed = discord.Embed(
@@ -159,7 +165,7 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
     view = WhitelistView(interaction.user, username)
     await admin_channel.send(embed=embed, view=view)
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"✅ Request whitelist untuk **{username}** sudah dikirim ke admin!\nTunggu approval ya!",
         ephemeral=True
     )
