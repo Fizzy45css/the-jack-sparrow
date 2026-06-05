@@ -62,7 +62,12 @@ class WhitelistView(discord.ui.View):
             await interaction.response.send_message("❌ Kamu bukan admin!", ephemeral=True)
             return
 
-        success = await send_mc_command(f"whitelist add {self.mc_username}")
+        # Bedrock player (username diawali ".") pakai fwhitelist dari Floodgate
+        if self.mc_username.startswith("."):
+            bedrock_name = self.mc_username[1:]  # Hapus titik di depan
+            success = await send_mc_command(f"fwhitelist add {bedrock_name}")
+        else:
+            success = await send_mc_command(f"whitelist add {self.mc_username}")
 
         if success:
             embed = discord.Embed(
@@ -138,8 +143,15 @@ class WhitelistView(discord.ui.View):
 # ==============================
 
 @bot.tree.command(name="whitelist", description="Whitelist Request ke server Minecraft")
-@app_commands.describe(username="Gamertag")
-async def whitelist_request(interaction: discord.Interaction, username: str):
+@app_commands.describe(
+    platform="Platform kamu (Java / Bedrock)",
+    username="Username / Gamertag kamu"
+)
+@app_commands.choices(platform=[
+    app_commands.Choice(name="☕ Java", value="java"),
+    app_commands.Choice(name="🪨 Bedrock", value="bedrock"),
+])
+async def whitelist_request(interaction: discord.Interaction, platform: app_commands.Choice[str], username: str):
     # Klaim interaksi duluan — instance kedua akan gagal di sini dan berhenti
     try:
         await interaction.response.defer(ephemeral=True)
@@ -167,23 +179,32 @@ async def whitelist_request(interaction: discord.Interaction, username: str):
         await interaction.followup.send("❌ Admin channel tidak ditemukan!", ephemeral=True)
         return
 
+    # Auto-tambah "." di depan username kalau Bedrock
+    if platform.value == "bedrock":
+        mc_username = f".{username}"
+        platform_label = "🪨 Bedrock"
+    else:
+        mc_username = username
+        platform_label = "☕ Java"
+
     embed = discord.Embed(
         title="📋 New Whitelist Request",
         description=f"{interaction.user.mention} ingin bergabung ke server!",
         color=discord.Color.blue()
     )
-    embed.add_field(name="🎮 Minecraft Username", value=f"`{username}`", inline=True)
-    embed.add_field(name="💬 Discord", value=interaction.user.mention, inline=True)
-    embed.set_thumbnail(url=f"https://mc-heads.net/avatar/{username}")
+    embed.add_field(name="🎮 Minecraft Username", value=f"`{mc_username}`", inline=True)
+    embed.add_field(name="🖥️ Platform", value=platform_label, inline=True)
+    embed.add_field(name="💬 Discord", value=interaction.user.mention, inline=False)
+    embed.set_thumbnail(url=f"https://mc-heads.net/avatar/{mc_username}")
     embed.set_footer(text=f"User ID: {interaction.user.id}")
 
     pending_requests.add(interaction.user.id)  # Tandai user sebagai pending
     save_pending()
-    view = WhitelistView(interaction.user, username)
+    view = WhitelistView(interaction.user, mc_username)
     await admin_channel.send(embed=embed, view=view)
 
     await interaction.followup.send(
-        f"✅ Request whitelist untuk **{username}** sudah dikirim ke admin!\nTunggu approval ya!",
+        f"✅ Request whitelist untuk **{mc_username}** ({platform_label}) sudah dikirim ke admin!\nTunggu approval ya!",
         ephemeral=True
     )
 
@@ -202,7 +223,12 @@ async def unwhitelist(interaction: discord.Interaction, username: str):
         await interaction.response.send_message("❌ Terdeteksi, Kamu bukan admin!", ephemeral=True)
         return
 
-    success = await send_mc_command(f"whitelist remove {username}")
+    # Bedrock player (username diawali ".") pakai fwhitelist dari Floodgate
+    if username.startswith("."):
+        bedrock_name = username[1:]
+        success = await send_mc_command(f"fwhitelist remove {bedrock_name}")
+    else:
+        success = await send_mc_command(f"whitelist remove {username}")
     if success:
         await interaction.response.send_message(f"✅ **{username}** berhasil dihapus dari whitelist!", ephemeral=True)
     else:
