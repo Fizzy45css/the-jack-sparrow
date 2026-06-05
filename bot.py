@@ -23,7 +23,7 @@ PTERODACTYL_URL     = "https://stellar.jagoanhosting.id"
 PTERODACTYL_API_KEY = "ptlc_NV9KjOJmOIIms4ZmMMTDoU38HIAPW9z47xZ5KD7rQSn"
 SERVER_ID           = "0da161b4"
 ADMIN_CHANNEL_ID    = 1512053806442086481  # Channel Moderator (Approve/Reject)
-PLAYER_CHANNEL_ID   = 1512011864161124442  # Channel Player (Request Whitelist)
+PLAYER_CHANNEL_ID   = 1512247207896682506  # Channel Player (Request Whitelist)
 
 intents = discord.Intents.default()
 intents.members = True
