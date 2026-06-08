@@ -18,12 +18,12 @@ def save_pending():
         json.dump(list(pending_requests), f)
 
 # KONFIGURASI
-DISCORD_TOKEN       = "MTUxMjAwNzk4ODg1NDkxNTExMw.GbF-MD.2aozQoUuzNS-bw5sakYQvBSyXUggbFjlOkq400"
+DISCORD_TOKEN       = "TOKEN_DISCORD_BOT_KAMU"
 PTERODACTYL_URL     = "https://stellar.jagoanhosting.id"
-PTERODACTYL_API_KEY = "ptlc_NV9KjOJmOIIms4ZmMMTDoU38HIAPW9z47xZ5KD7rQSn"
+PTERODACTYL_API_KEY = "API_KEY_PTERODACTYL_KAMU"
 SERVER_ID           = "0da161b4"
-ADMIN_CHANNEL_ID    = 1512053806442086481  # Channel Moderator (Approve/Reject)
-PLAYER_CHANNEL_ID   = 1512247207896682506  # Channel Player (Request Whitelist)
+ADMIN_CHANNEL_ID    = 1512053806442086481
+PLAYER_CHANNEL_ID   = 1512247207896682506
 
 intents = discord.Intents.default()
 intents.members = True
@@ -31,7 +31,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 synced = False
-pending_requests = load_pending()  # Load dari file supaya persistent saat bot restart
+pending_requests = load_pending()
 
 
 async def send_mc_command(command: str) -> bool:
@@ -48,7 +48,7 @@ async def send_mc_command(command: str) -> bool:
 
 class WhitelistView(discord.ui.View):
     def __init__(self, requester: discord.Member, mc_username: str):
-        super().__init__(timeout=86400)  # 24 jam timeout
+        super().__init__(timeout=86400)
         self.requester = requester
         self.mc_username = mc_username
 
@@ -62,12 +62,7 @@ class WhitelistView(discord.ui.View):
             await interaction.response.send_message("❌ Kamu bukan admin!", ephemeral=True)
             return
 
-        # Bedrock player (username diawali ".") pakai fwhitelist dari Floodgate
-        if self.mc_username.startswith("."):
-            bedrock_name = self.mc_username[1:]  # Hapus titik di depan
-            success = await send_mc_command(f"fwhitelist add {bedrock_name}")
-        else:
-            success = await send_mc_command(f"whitelist add {self.mc_username}")
+        success = await send_mc_command(f"whitelist add {self.mc_username}")
 
         if success:
             embed = discord.Embed(
@@ -80,14 +75,12 @@ class WhitelistView(discord.ui.View):
             await interaction.message.edit(embed=embed, view=None)
             await interaction.response.send_message("✅ Whitelist Berhasil!", ephemeral=True)
 
-            # Kirim ke channel player
             player_channel = bot.get_channel(PLAYER_CHANNEL_ID)
             if player_channel:
                 await player_channel.send(
                     f"✅ {self.requester.mention} Whitelist request untuk **{self.mc_username}** telah diapprove! Selamat bergabung! 🎮"
                 )
 
-            # Kirim DM ke player
             try:
                 await self.requester.send(
                     f"✅ Whitelist request untuk **{self.mc_username}** telah diapprove!\n"
@@ -98,7 +91,7 @@ class WhitelistView(discord.ui.View):
         else:
             await interaction.response.send_message("❌ Gagal mengirim command ke server!", ephemeral=True)
 
-        pending_requests.discard(self.requester.id)  # Hapus dari pending setelah selesai
+        pending_requests.discard(self.requester.id)
         save_pending()
         self.stop()
 
@@ -118,14 +111,12 @@ class WhitelistView(discord.ui.View):
         await interaction.message.edit(embed=embed, view=None)
         await interaction.response.send_message("✅ Request direject!", ephemeral=True)
 
-        # Kirim ke channel player
         player_channel = bot.get_channel(PLAYER_CHANNEL_ID)
         if player_channel:
             await player_channel.send(
                 f"❌ {self.requester.mention} Whitelist request untuk **{self.mc_username}** telah direject oleh admin."
             )
 
-        # Kirim DM ke player
         try:
             await self.requester.send(
                 f"❌ Whitelist request untuk **{self.mc_username}** telah direject oleh admin."
@@ -133,7 +124,7 @@ class WhitelistView(discord.ui.View):
         except:
             pass
 
-        pending_requests.discard(self.requester.id)  # Hapus dari pending setelah selesai
+        pending_requests.discard(self.requester.id)
         save_pending()
         self.stop()
 
@@ -152,13 +143,11 @@ class WhitelistView(discord.ui.View):
     app_commands.Choice(name="🪨 Bedrock", value="bedrock"),
 ])
 async def whitelist_request(interaction: discord.Interaction, platform: app_commands.Choice[str], username: str):
-    # Klaim interaksi duluan — instance kedua akan gagal di sini dan berhenti
     try:
         await interaction.response.defer(ephemeral=True)
     except discord.errors.InteractionResponded:
-        return  # Instance lain sudah menangani interaksi ini
+        return
 
-    # Hanya boleh di channel player
     if interaction.channel_id != PLAYER_CHANNEL_ID:
         await interaction.followup.send(
             f"❌ Command ini hanya bisa digunakan di <#{PLAYER_CHANNEL_ID}>!",
@@ -166,7 +155,6 @@ async def whitelist_request(interaction: discord.Interaction, platform: app_comm
         )
         return
 
-    # Cek apakah user sudah punya request pending
     if interaction.user.id in pending_requests:
         await interaction.followup.send(
             "❌ Kamu sudah punya request whitelist yang sedang menunggu approval!\nTunggu sampai di-approve atau direject dulu.",
@@ -179,7 +167,6 @@ async def whitelist_request(interaction: discord.Interaction, platform: app_comm
         await interaction.followup.send("❌ Admin channel tidak ditemukan!", ephemeral=True)
         return
 
-    # Auto-tambah "." di depan username kalau Bedrock
     if platform.value == "bedrock":
         mc_username = f".{username}"
         platform_label = "🪨 Bedrock"
@@ -198,7 +185,7 @@ async def whitelist_request(interaction: discord.Interaction, platform: app_comm
     embed.set_thumbnail(url=f"https://mc-heads.net/avatar/{mc_username}")
     embed.set_footer(text=f"User ID: {interaction.user.id}")
 
-    pending_requests.add(interaction.user.id)  # Tandai user sebagai pending
+    pending_requests.add(interaction.user.id)
     save_pending()
     view = WhitelistView(interaction.user, mc_username)
     await admin_channel.send(embed=embed, view=view)
@@ -210,7 +197,7 @@ async def whitelist_request(interaction: discord.Interaction, platform: app_comm
 
 
 @bot.tree.command(name="unwhitelist", description="Hapus player dari whitelist (Admin Command)")
-@app_commands.describe(username="Gamertag")
+@app_commands.describe(username="Gamertag (tambah titik di depan untuk Bedrock, contoh: .Steve)")
 async def unwhitelist(interaction: discord.Interaction, username: str):
     if interaction.channel_id != ADMIN_CHANNEL_ID:
         await interaction.response.send_message(
@@ -223,12 +210,7 @@ async def unwhitelist(interaction: discord.Interaction, username: str):
         await interaction.response.send_message("❌ Terdeteksi, Kamu bukan admin!", ephemeral=True)
         return
 
-    # Bedrock player (username diawali ".") pakai fwhitelist dari Floodgate
-    if username.startswith("."):
-        bedrock_name = username[1:]
-        success = await send_mc_command(f"fwhitelist remove {bedrock_name}")
-    else:
-        success = await send_mc_command(f"whitelist remove {username}")
+    success = await send_mc_command(f"whitelist remove {username}")
     if success:
         await interaction.response.send_message(f"✅ **{username}** berhasil dihapus dari whitelist!", ephemeral=True)
     else:
@@ -283,9 +265,7 @@ async def unban_player(interaction: discord.Interaction, username: str):
 
 @bot.tree.command(name="soggycat", description="soggy cat")
 async def soggycat(interaction: discord.Interaction):
-    embed = discord.Embed()
-    embed.set_image(url="https://soggy.cat/static/ssoggycat/main/images/soggycat.webp")
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message("https://cataas.com/cat")
 
 
 # BOT EVENTS
