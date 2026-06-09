@@ -18,12 +18,13 @@ def save_pending():
         json.dump(list(pending_requests), f)
 
 # KONFIGURASI
-DISCORD_TOKEN       = "MTUxMjAwNzk4ODg1NDkxNTExMw.GwkS93.KFqtL4rK9hEcl0c9Y8w31BymT_QfroqsDMpB7I"
-PTERODACTYL_URL     = "https://stellar.jagoanhosting.id"
-PTERODACTYL_API_KEY = "ptlc_mxEHNP9JR8Q0YJFco4fR8TQ76sfPh4EqkpXCNzpU22F"
-SERVER_ID           = "0da161b4"
-ADMIN_CHANNEL_ID    = 1512053806442086481
-PLAYER_CHANNEL_ID   = 1512247207896682506
+DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.GwkS93.KFqtL4rK9hEcl0c9Y8w31BymT_QfroqsDMpB7I"
+PTERODACTYL_URL         = "https://stellar.jagoanhosting.id"
+PTERODACTYL_API_KEY     = "ptlc_mxEHNP9JR8Q0YJFco4fR8TQ76sfPh4EqkpXCNzpU22F"
+SERVER_ID               = "0da161b4"
+ADMIN_CHANNEL_ID        = 1512053806442086481
+PLAYER_CHANNEL_ID       = 1512247207896682506
+MINECRAFT_MEMBER_ROLE   = 954264022654550027
 
 intents = discord.Intents.default()
 intents.members = True
@@ -65,6 +66,14 @@ class WhitelistView(discord.ui.View):
         success = await send_mc_command(f"whitelist add {self.mc_username}")
 
         if success:
+            # Auto-assign Minecraft Member role
+            minecraft_role = interaction.guild.get_role(MINECRAFT_MEMBER_ROLE)
+            role_given = False
+            if minecraft_role:
+                if minecraft_role not in self.requester.roles:
+                    await self.requester.add_roles(minecraft_role)
+                    role_given = True
+
             embed = discord.Embed(
                 title="✅ Whitelist Approved",
                 description=f"`{self.mc_username}` Telah ditambahkan ke whitelist!",
@@ -72,6 +81,8 @@ class WhitelistView(discord.ui.View):
             )
             embed.add_field(name="Approved by", value=interaction.user.mention, inline=True)
             embed.add_field(name="Player", value=self.requester.mention, inline=True)
+            if role_given:
+                embed.add_field(name="✳️Dan juga Role", value=f"<@&{MINECRAFT_MEMBER_ROLE}> diberikan!", inline=True)
             await interaction.message.edit(embed=embed, view=None)
             await interaction.response.send_message("✅ Whitelist Berhasil!", ephemeral=True)
 
@@ -82,10 +93,13 @@ class WhitelistView(discord.ui.View):
                 )
 
             try:
-                await self.requester.send(
+                dm_msg = (
                     f"✅ Whitelist request untuk **{self.mc_username}** telah diapprove!\n"
                     f"Selamat bergabung di server! 🎮"
                 )
+                if role_given:
+                    dm_msg += f"\n✳️Kamu juga mendapatkan role **Minecraft Member**!"
+                await self.requester.send(dm_msg)
             except:
                 pass
         else:
