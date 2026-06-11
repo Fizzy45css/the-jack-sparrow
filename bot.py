@@ -66,7 +66,6 @@ class WhitelistView(discord.ui.View):
         success = await send_mc_command(f"whitelist add {self.mc_username}")
 
         if success:
-            # Auto-assign Minecraft Member role
             minecraft_role = interaction.guild.get_role(MINECRAFT_MEMBER_ROLE)
             role_given = False
             if minecraft_role:
@@ -275,6 +274,30 @@ async def unban_player(interaction: discord.Interaction, username: str):
         await interaction.response.send_message(f"✅ **{username}** berhasil di-unban!", ephemeral=True)
     else:
         await interaction.response.send_message("❌ Gagal mengirim command ke server!", ephemeral=True)
+
+
+@bot.tree.command(name="broadcast", description="Kirim gambar ke channel manapun (Admin Command)")
+@app_commands.describe(
+    channel="Channel tujuan",
+    image="Gambar yang ingin dikirim",
+    caption="Judul embed (opsional)"
+)
+async def broadcast(interaction: discord.Interaction, channel: discord.TextChannel, image: discord.Attachment, caption: str = ""):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Kamu bukan admin!", ephemeral=True)
+        return
+
+    if not image.content_type or not image.content_type.startswith("image/"):
+        await interaction.response.send_message("❌ File harus berupa gambar!", ephemeral=True)
+        return
+
+    embed = discord.Embed(color=discord.Color.blurple())
+    if caption:
+        embed.title = caption
+    embed.set_image(url=image.url)
+
+    await channel.send(embed=embed)
+    await interaction.response.send_message(f"✅ Gambar berhasil dikirim ke {channel.mention}!", ephemeral=True)
 
 
 @bot.tree.command(name="soggycat", description="soggy cat")
