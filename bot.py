@@ -18,9 +18,9 @@ def save_pending():
         json.dump(list(pending_requests), f)
 
 # KONFIGURASI
-DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.GwkS93.KFqtL4rK9hEcl0c9Y8w31BymT_QfroqsDMpB7I"
+DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.GxQJUg.5kbQZL9huI9GiitEM-V-0VjohfT99_g6yTx7gI"
 PTERODACTYL_URL         = "https://stellar.jagoanhosting.id"
-PTERODACTYL_API_KEY     = "ptlc_mxEHNP9JR8Q0YJFco4fR8TQ76sfPh4EqkpXCNzpU22F"
+PTERODACTYL_API_KEY     = "ptlc_TRlWcGmFtZg2D9VIDhnbZXYKqHM981nVPMva91MoOgO"
 SERVER_ID               = "0da161b4"
 ADMIN_CHANNEL_ID        = 1512053806442086481
 PLAYER_CHANNEL_ID       = 1512247207896682506
