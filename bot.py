@@ -276,11 +276,11 @@ async def unban_player(interaction: discord.Interaction, username: str):
         await interaction.response.send_message("❌ Gagal mengirim command ke server!", ephemeral=True)
 
 
-@bot.tree.command(name="broadcast", description="broadcast")
+@bot.tree.command(name="broadcast", description="Kirim gambar ke channel manapun (Admin Command)")
 @app_commands.describe(
-    channel="ex",
-    image="ex1",
-    caption="ex2"
+    channel="Channel tujuan",
+    image="Gambar yang ingin dikirim",
+    caption="Judul embed (opsional)"
 )
 async def broadcast(interaction: discord.Interaction, channel: discord.TextChannel, image: discord.Attachment, caption: str = ""):
     if not interaction.user.guild_permissions.administrator:
