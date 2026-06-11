@@ -276,11 +276,11 @@ async def unban_player(interaction: discord.Interaction, username: str):
         await interaction.response.send_message("❌ Gagal mengirim command ke server!", ephemeral=True)
 
 
-@bot.tree.command(name="broadcast", description="Kirim gambar ke channel manapun (Admin Command)")
+@bot.tree.command(name="broadcast", description="broadcast")
 @app_commands.describe(
-    channel="Channel tujuan",
-    image="Gambar yang ingin dikirim",
-    caption="Judul embed (opsional)"
+    channel="ex",
+    image="ex1",
+    caption="ex2"
 )
 async def broadcast(interaction: discord.Interaction, channel: discord.TextChannel, image: discord.Attachment, caption: str = ""):
     if not interaction.user.guild_permissions.administrator:
@@ -302,7 +302,7 @@ async def broadcast(interaction: discord.Interaction, channel: discord.TextChann
 
 @bot.tree.command(name="soggycat", description="soggy cat")
 async def soggycat(interaction: discord.Interaction):
-    await interaction.response.send_message("https://cataas.com/cat")
+    await interaction.response.send_message("https://cdn.discordapp.com/attachments/1507566209833373800/1512033693869277194/soggycat.webp?ex=6a2b305c&is=6a29dedc&hm=8f24a58c07711c9917c047c63e9cc85f5993bf147d096e6846509953eccbf750&")
 
 
 # BOT EVENTS
