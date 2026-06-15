@@ -26,6 +26,9 @@ ADMIN_CHANNEL_ID        = 1512053806442086481
 PLAYER_CHANNEL_ID       = 1512247207896682506
 MINECRAFT_MEMBER_ROLE   = 954264022654550027
 
+# Path whitelist.json di dalam server Minecraft (sesuaikan jika beda)
+WHITELIST_PATH = "/whitelist.json"
+
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
@@ -34,6 +37,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 synced = False
 pending_requests = load_pending()
 
+
+# ==============================
+# PTERODACTYL HELPERS
+# ==============================
 
 async def send_mc_command(command: str) -> bool:
     url = f"{PTERODACTYL_URL}/api/client/servers/{SERVER_ID}/command"
@@ -47,11 +54,82 @@ async def send_mc_command(command: str) -> bool:
             return resp.status == 204
 
 
+async def read_whitelist_json() -> list | None:
+    """Baca whitelist.json dari server via Pterodactyl Files API."""
+    url = f"{PTERODACTYL_URL}/api/client/servers/{SERVER_ID}/files/read"
+    headers = {
+        "Authorization": f"Bearer {PTERODACTYL_API_KEY}",
+        "Accept": "application/json"
+    }
+    params = {"file": WHITELIST_PATH}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers, params=params) as resp:
+            if resp.status != 200:
+                return None
+            text = await resp.text()
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                return None
+
+
+async def write_whitelist_json(data: list) -> bool:
+    """Tulis whitelist.json ke server via Pterodactyl Files API."""
+    url = f"{PTERODACTYL_URL}/api/client/servers/{SERVER_ID}/files/write"
+    headers = {
+        "Authorization": f"Bearer {PTERODACTYL_API_KEY}",
+        "Content-Type": "application/octet-stream",
+    }
+    params = {"file": WHITELIST_PATH}
+    content = json.dumps(data, indent=2)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, params=params, data=content.encode("utf-8")) as resp:
+            return resp.status == 204
+
+
+# ==============================
+# VRC.LOL — FLOODGATE UUID
+# ==============================
+
+async def fetch_floodgate_uuid(gamertag: str) -> str | None:
+    """
+    Ambil Floodgate UUID dari vrc.lol untuk player Bedrock.
+
+    ⚠️  Verifikasi endpoint & struktur response-nya sesuai dengan
+        yang kamu lihat di website vrc.lol. Sesuaikan baris di bawah
+        jika response structure-nya berbeda.
+
+    Contoh response yang diasumsikan:
+    {
+      "bedrock": {
+        "floodgate_uuid": "00000000-0000-0000-0009-xxxxxxxxxxxxxxxx",
+        ...
+      }
+    }
+    """
+    # Sesuaikan URL ini dengan endpoint yang benar dari vrc.lol
+    url = f"https://vrc.lol/api?username={gamertag}&type=bedrock"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                return None
+            try:
+                data = await resp.json(content_type=None)
+                return data["bedrock"]["floodgate_uuid"]
+            except (KeyError, TypeError, aiohttp.ContentTypeError):
+                return None
+
+
+# ==============================
+# WHITELIST VIEW
+# ==============================
+
 class WhitelistView(discord.ui.View):
-    def __init__(self, requester: discord.Member, mc_username: str):
+    def __init__(self, requester: discord.Member, mc_username: str, platform: str):
         super().__init__(timeout=86400)
         self.requester = requester
         self.mc_username = mc_username
+        self.platform = platform  # "java" atau "bedrock"
 
     async def on_timeout(self):
         pending_requests.discard(self.requester.id)
@@ -63,7 +141,64 @@ class WhitelistView(discord.ui.View):
             await interaction.response.send_message("❌ Kamu bukan admin!", ephemeral=True)
             return
 
-        success = await send_mc_command(f"whitelist add {self.mc_username}")
+        # Defer karena proses Bedrock butuh beberapa API call (bisa > 3 detik)
+        await interaction.response.defer(ephemeral=True)
+
+        success = False
+
+        if self.platform == "bedrock":
+            # ── BEDROCK: tulis langsung ke whitelist.json via UUID ──
+            gamertag = self.mc_username.lstrip(".")  # hapus prefix "." untuk query
+
+            # 1. Ambil Floodgate UUID dari vrc.lol
+            floodgate_uuid = await fetch_floodgate_uuid(gamertag)
+            if not floodgate_uuid:
+                await interaction.followup.send(
+                    f"❌ Gagal mendapatkan UUID Floodgate untuk `{gamertag}` dari vrc.lol.\n"
+                    f"Cek apakah gamertag benar atau coba whitelist manual.",
+                    ephemeral=True
+                )
+                return
+
+            # 2. Baca whitelist.json yang ada
+            whitelist = await read_whitelist_json()
+            if whitelist is None:
+                await interaction.followup.send(
+                    "❌ Gagal membaca `whitelist.json` dari server!",
+                    ephemeral=True
+                )
+                return
+
+            # 3. Cek duplikat (UUID atau nama sudah ada)
+            already_exists = any(
+                entry.get("uuid") == floodgate_uuid or
+                entry.get("name", "").lower() == self.mc_username.lower()
+                for entry in whitelist
+            )
+
+            if not already_exists:
+                whitelist.append({
+                    "uuid": floodgate_uuid,
+                    "name": self.mc_username,  # sudah ada "." di depan
+                    "level": 0
+                })
+
+            # 4. Tulis kembali whitelist.json
+            write_ok = await write_whitelist_json(whitelist)
+            if not write_ok:
+                await interaction.followup.send(
+                    "❌ Gagal menulis `whitelist.json` ke server!",
+                    ephemeral=True
+                )
+                return
+
+            # 5. Reload whitelist agar perubahan langsung berlaku
+            await send_mc_command("whitelist reload")
+            success = True
+
+        else:
+            # ── JAVA: pakai command whitelist add seperti biasa ──
+            success = await send_mc_command(f"whitelist add {self.mc_username}")
 
         if success:
             minecraft_role = interaction.guild.get_role(MINECRAFT_MEMBER_ROLE)
@@ -83,7 +218,7 @@ class WhitelistView(discord.ui.View):
             if role_given:
                 embed.add_field(name="✳️Dan juga Role", value=f"<@&{MINECRAFT_MEMBER_ROLE}> diberikan!", inline=True)
             await interaction.message.edit(embed=embed, view=None)
-            await interaction.response.send_message("✅ Whitelist Berhasil!", ephemeral=True)
+            await interaction.followup.send("✅ Whitelist Berhasil!", ephemeral=True)
 
             player_channel = bot.get_channel(PLAYER_CHANNEL_ID)
             if player_channel:
@@ -102,7 +237,7 @@ class WhitelistView(discord.ui.View):
             except:
                 pass
         else:
-            await interaction.response.send_message("❌ Gagal mengirim command ke server!", ephemeral=True)
+            await interaction.followup.send("❌ Gagal mengirim command ke server!", ephemeral=True)
 
         pending_requests.discard(self.requester.id)
         save_pending()
@@ -200,7 +335,7 @@ async def whitelist_request(interaction: discord.Interaction, platform: app_comm
 
     pending_requests.add(interaction.user.id)
     save_pending()
-    view = WhitelistView(interaction.user, mc_username)
+    view = WhitelistView(interaction.user, mc_username, platform.value)  # platform diteruskan
     await admin_channel.send(embed=embed, view=view)
 
     await interaction.followup.send(
