@@ -27,7 +27,7 @@ PLAYER_CHANNEL_ID       = 1512247207896682506
 MINECRAFT_MEMBER_ROLE   = 954264022654550027
 
 # Path whitelist.json di dalam server Minecraft (sesuaikan jika beda)
-WHITELIST_PATH = "/home/container/whitelist.json"
+WHITELIST_PATH = "/container/whitelist.json"
 
 intents = discord.Intents.default()
 intents.members = True
