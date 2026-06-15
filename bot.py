@@ -20,13 +20,17 @@ def save_pending():
 # KONFIGURASI
 DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.GxQJUg.5kbQZL9huI9GiitEM-V-0VjohfT99_g6yTx7gI"
 PTERODACTYL_URL         = "https://stellar.jagoanhosting.id"
-PTERODACTYL_API_KEY     = "ptlc_TRlWcGmFtZg2D9VIDhnbZXYKqHM981nVPMva91MoOgO"
+PTERODACTYL_API_KEY     = ""ptlc_TRlWcGmFtZg2D9VIDhnbZXYKqHM981nVPMva91MoOgO"
 SERVER_ID               = "0da161b4"
 ADMIN_CHANNEL_ID        = 1512053806442086481
 PLAYER_CHANNEL_ID       = 1512247207896682506
 MINECRAFT_MEMBER_ROLE   = 954264022654550027
 
 # Path whitelist.json di dalam server Minecraft (sesuaikan jika beda)
+# CATATAN: Path untuk Pterodactyl Files API itu RELATIF terhadap root
+# direktori server (yang sejajar dengan server.properties), BUKAN
+# path filesystem absolut "/home/container/...". Jadi cukup "/whitelist.json"
+# kalau file-nya ada di root server.
 WHITELIST_PATH = "/whitelist.json"
 
 intents = discord.Intents.default()
@@ -56,7 +60,7 @@ async def send_mc_command(command: str) -> bool:
 
 async def read_whitelist_json() -> list | None:
     """Baca whitelist.json dari server via Pterodactyl Files API."""
-    url = f"{PTERODACTYL_URL}/api/client/servers/{SERVER_ID}/files/read"
+    url = f"{PTERODACTYL_URL}/api/client/servers/{SERVER_ID}/files/contents"
     headers = {
         "Authorization": f"Bearer {PTERODACTYL_API_KEY}",
         "Accept": "application/json"
