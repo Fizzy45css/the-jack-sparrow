@@ -183,8 +183,8 @@ class WhitelistView(discord.ui.View):
             if not already_exists:
                 whitelist.append({
                     "uuid": floodgate_uuid,
-                    "name": self.mc_username
-# sudah ada "." di depan
+                    "name": self.mc_username,  # sudah ada "." di depan
+                    "level": 0
                 })
 
             # 4. Tulis kembali whitelist.json
