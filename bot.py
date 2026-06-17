@@ -58,23 +58,31 @@ async def send_mc_command(command: str) -> bool:
             return resp.status == 204
 
 
-async def read_whitelist_json() -> list | None:
-    """Baca whitelist.json dari server via Pterodactyl Files API."""
+async def read_whitelist_json() -> tuple[list | None, str | None]:
+    """
+    Baca whitelist.json dari server via Pterodactyl Files API.
+    Return: (data, error_message)
+    - Sukses: (list, None)
+    - Gagal:  (None, "pesan error detail")
+    """
     url = f"{PTERODACTYL_URL}/api/client/servers/{SERVER_ID}/files/contents"
     headers = {
         "Authorization": f"Bearer {PTERODACTYL_API_KEY}",
         "Accept": "application/json"
     }
     params = {"file": WHITELIST_PATH}
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers, params=params) as resp:
-            if resp.status != 200:
-                return None
-            text = await resp.text()
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                return None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, params=params) as resp:
+                text = await resp.text()
+                if resp.status != 200:
+                    return None, f"HTTP {resp.status}: {text[:300]}"
+                try:
+                    return json.loads(text), None
+                except json.JSONDecodeError as e:
+                    return None, f"JSON parse error: {e}\nContent: {text[:200]}"
+    except Exception as e:
+        return None, f"Request error: {e}"
 
 
 async def write_whitelist_json(data: list) -> bool:
@@ -186,10 +194,10 @@ class WhitelistView(discord.ui.View):
                 return
 
             # 2. Baca whitelist.json yang ada
-            whitelist = await read_whitelist_json()
+            whitelist, read_error = await read_whitelist_json()
             if whitelist is None:
                 await interaction.followup.send(
-                    "❌ Gagal membaca `whitelist.json` dari server!",
+                    f"❌ Gagal membaca `whitelist.json` dari server!\n```\n{read_error}\n```",
                     ephemeral=True
                 )
                 return
