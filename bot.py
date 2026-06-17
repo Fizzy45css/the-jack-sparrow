@@ -202,6 +202,14 @@ class WhitelistView(discord.ui.View):
                 )
                 return
 
+            # Validasi UUID sebelum lanjut
+            if not floodgate_uuid or not isinstance(floodgate_uuid, str):
+                await interaction.followup.send(
+                    f"❌ UUID Floodgate tidak valid: `{floodgate_uuid}`",
+                    ephemeral=True
+                )
+                return
+
             # 3. Cek duplikat (UUID atau nama sudah ada)
             already_exists = any(
                 entry.get("uuid") == floodgate_uuid or
@@ -210,11 +218,21 @@ class WhitelistView(discord.ui.View):
             )
 
             if not already_exists:
+                # Format standar whitelist.json Minecraft: hanya uuid dan name
                 whitelist.append({
                     "uuid": floodgate_uuid,
-                    "name": self.mc_username,  # sudah ada "." di depan
-                    "level": 0
+                    "name": self.mc_username
                 })
+
+            # Validasi JSON sebelum ditulis ke server
+            try:
+                json.dumps(whitelist)
+            except (TypeError, ValueError) as e:
+                await interaction.followup.send(
+                    f"❌ Data whitelist tidak valid, batal menulis!\n```\n{e}\n```",
+                    ephemeral=True
+                )
+                return
 
             # 4. Tulis kembali whitelist.json
             write_ok = await write_whitelist_json(whitelist)
@@ -225,8 +243,9 @@ class WhitelistView(discord.ui.View):
                 )
                 return
 
-            # 5. Reload whitelist agar perubahan langsung berlaku
-            await send_mc_command("whitelist reload")
+            # CATATAN: whitelist reload SENGAJA tidak dijalankan karena
+            # Paper/Spigot akan membuat whitelist.json.backup dan mengosongkan
+            # file saat reload dipicu dari luar lewat API.
             success = True
 
         else:
