@@ -92,34 +92,55 @@ async def write_whitelist_json(data: list) -> bool:
 
 
 # ==============================
-# VRC.LOL — FLOODGATE UUID
+# MCPROFILE.IO — FLOODGATE UUID
 # ==============================
+
+def xuid_to_floodgate_uuid(xuid: str) -> str | None:
+    """
+    Konversi XUID (decimal string) ke format Floodgate UUID.
+    Format: 00000000-0000-0000-xxxx-xxxxxxxxxxxx
+    """
+    try:
+        xuid_hex = format(int(xuid), "016x")  # 16 karakter hex, zero-padded
+        return f"00000000-0000-0000-{xuid_hex[:4]}-{xuid_hex[4:]}"
+    except (ValueError, TypeError):
+        return None
+
 
 async def fetch_floodgate_uuid(gamertag: str) -> str | None:
     """
-    Ambil Floodgate UUID dari vrc.lol untuk player Bedrock.
+    Ambil Floodgate UUID dari mcprofile.io untuk player Bedrock.
 
-    ⚠️  Verifikasi endpoint & struktur response-nya sesuai dengan
-        yang kamu lihat di website vrc.lol. Sesuaikan baris di bawah
-        jika response structure-nya berbeda.
-
-    Contoh response yang diasumsikan:
+    Response mcprofile.io untuk /api/v1/bedrock/gamertag/{gamertag}:
     {
-      "bedrock": {
-        "floodgate_uuid": "00000000-0000-0000-0009-xxxxxxxxxxxxxxxx",
-        ...
-      }
+      "gamertag": "PlayerName",
+      "xuid": "2535416109870123",
+      "floodgate_uid": "00000000-0000-0000-xxxx-xxxxxxxxxxxx",
+      "linked": false
     }
+
+    - Prioritas: pakai field "floodgate_uid" langsung jika ada.
+    - Fallback: konstruksi dari "xuid" jika "floodgate_uid" tidak ada.
     """
-    # Sesuaikan URL ini dengan endpoint yang benar dari vrc.lol
-    url = f"https://vrc.lol/api?username={gamertag}&type=bedrock"
+    url = f"https://mcprofile.io/api/v1/bedrock/gamertag/{gamertag}"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
             if resp.status != 200:
                 return None
             try:
                 data = await resp.json(content_type=None)
-                return data["bedrock"]["floodgate_uuid"]
+
+                # Coba ambil floodgate_uid langsung
+                fuid = data.get("floodgate_uid")
+                if fuid:
+                    return fuid
+
+                # Fallback: bangun dari xuid
+                xuid = data.get("xuid")
+                if xuid:
+                    return xuid_to_floodgate_uuid(xuid)
+
+                return None
             except (KeyError, TypeError, aiohttp.ContentTypeError):
                 return None
 
@@ -154,11 +175,11 @@ class WhitelistView(discord.ui.View):
             # ── BEDROCK: tulis langsung ke whitelist.json via UUID ──
             gamertag = self.mc_username.lstrip(".")  # hapus prefix "." untuk query
 
-            # 1. Ambil Floodgate UUID dari vrc.lol
+            # 1. Ambil Floodgate UUID dari mcprofile.io
             floodgate_uuid = await fetch_floodgate_uuid(gamertag)
             if not floodgate_uuid:
                 await interaction.followup.send(
-                    f"❌ Gagal mendapatkan UUID Floodgate untuk `{gamertag}` dari vrc.lol.\n"
+                    f"❌ Gagal mendapatkan UUID Floodgate untuk `{gamertag}` dari mcprofile.io.\n"
                     f"Cek apakah gamertag benar atau coba whitelist manual.",
                     ephemeral=True
                 )
