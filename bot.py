@@ -18,7 +18,7 @@ def save_pending():
         json.dump(list(pending_requests), f)
 
 # KONFIGURASI
-DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.GxQJUg.5kbQZL9huI9GiitEM-V-0VjohfT99_g6yTx7gI"
+DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.G3IP_T.GnbEurcomi06c5cwcmJosHAn66YWrXeHyN3ZLM"
 PTERODACTYL_URL         = "https://stellar.jagoanhosting.id"
 PTERODACTYL_API_KEY     = "ptlc_OfK40qweZie4mkGqikZlzAqixOQTiDh1N7Gy93fJ4iY"
 SERVER_ID               = "0da161b4"
