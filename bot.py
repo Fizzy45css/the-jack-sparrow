@@ -22,8 +22,8 @@ def save_pending():
 
 # KONFIGURASI
 DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.G3IP_T.GnbEurcomi06c5cwcmJosHAn66YWrXeHyN3ZLM"
-PTERODACTYL_URL         = "https://stellar.jagoanhosting.id"
-PTERODACTYL_API_KEY     = "ptlc_OfK40qweZie4mkGqikZlzAqixOQTiDh1N7Gy93fJ4iY"
+PTERODACTYL_URL         = "https://panel.alstore.space/"
+PTERODACTYL_API_KEY     = "ptlc_odsrJq0zt6L20ExttUGkcw0b8LXItdlqnkOELS0Qw7R"
 SERVER_ID               = "0da161b4"
 ADMIN_CHANNEL_ID        = 1512053806442086481
 PLAYER_CHANNEL_ID       = 1512247207896682506
