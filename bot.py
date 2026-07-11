@@ -21,7 +21,7 @@ def save_pending():
         json.dump(list(pending_requests), f)
 
 # KONFIGURASI
-DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.G3IP_T.GnbEurcomi06c5cwcmJosHAn66YWrXeHyN3ZLM"
+DISCORD_TOKEN           = "MTUxMjAwNzk4ODg1NDkxNTExMw.GvkAnI.LBRuMdMjcmWnEWSWUXxHPe57xwokqW3eRBmtyM"
 PTERODACTYL_URL         = "https://panel.alstore.space/"
 PTERODACTYL_API_KEY     = "ptlc_odsrJq0zt6L20ExttUGkcw0b8LXItdlqnkOELS0Qw7R"
 SERVER_ID               = "0da161b4"
