@@ -456,7 +456,7 @@ async def main():
                 await bot.close()
 
         await asyncio.sleep(retry_delay)
-        retry_delay = min(retry_delay * 2, max_delay)  # Exponential backoff wkwwkwkwkwkwk
+        retry_delay = min(retry_delay * 2, max_delay)  # Exponential backoff wkwwkwkwkwkwwk
 
 
 if __name__ == "__main__":
