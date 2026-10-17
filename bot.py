@@ -25,7 +25,7 @@ def save_pending():
 
 # KONFIGURASI
 DISCORD_TOKEN           = os.getenv("DISCORD_TOKEN")
-PTERODACTYL_URL         = ""
+PTERODACTYL_URL         = os.getenv("PTEREODACTYL_URL")
 PTERODACTYL_API_KEY     = os.getenv("PTERODACTYL_API_KEY")
 SERVER_ID               = "0da161b4"
 ADMIN_CHANNEL_ID        = 1512053806442086481
