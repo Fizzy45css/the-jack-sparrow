@@ -8,6 +8,8 @@ import time
 import sys
 import asyncio
 from typing import Optional
+from dotenv import load_dotenv
+load_dotenv()
 
 PENDING_FILE = "pending.json"
 
@@ -22,9 +24,9 @@ def save_pending():
         json.dump(list(pending_requests), f)
 
 # KONFIGURASI
-DISCORD_TOKEN           = "apa lu"
-PTERODACTYL_URL         = "https://panel.alstore.space/"
-PTERODACTYL_API_KEY     = "when yh"
+DISCORD_TOKEN           = os.getenv("DISCORD_TOKEN")
+PTERODACTYL_URL         = ""
+PTERODACTYL_API_KEY     = os.getenv("PTERODACTYL_API_KEY")
 SERVER_ID               = "0da161b4"
 ADMIN_CHANNEL_ID        = 1512053806442086481
 PLAYER_CHANNEL_ID       = 1512247207896682506
